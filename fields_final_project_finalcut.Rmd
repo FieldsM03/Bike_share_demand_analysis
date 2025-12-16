@@ -1,0 +1,184 @@
+---
+title: "fields_final_project_finalcut"
+author: "MItchell Fields"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Bike rentals in days
+
+![](bike.jpeg)
+
+```{r setup, include=FALSE,echo=FALSE}
+
+library(readr)
+library(ggfortify)
+library(ggplot2)
+library(lmPerm)
+day_bike <- read_csv("/Volumes/SCHOOL WORK/DSA-587/day-bike.csv")
+```
+
+## Introduction:
+
+#### This data is a bike-sharing rental company and the location looked at is located in Washington D.C from 2011 to 2012.
+
+#### During this time frame the following factor were collected, the weather conditions, precipitation, day of week, season, temperature, feel temperature, holiday, weekday, workingday, and windspeed.
+
+#### The reason for the interest is the data has a important role it traffic, environmental and health issues in the area.
+
+```{r look at data, include=TRUE}
+head(day_bike)
+```
+
+#### looking over the information all the variables were continuous except for the date.
+
+```{r missing data}
+colSums(is.na(day_bike))
+```
+
+#### This shows that there is no missing data
+
+```{r summary}
+summary(day_bike)
+```
+
+```{r }
+
+```
+
+### Methods: Principal component analysis
+
+```{r PCA 1}
+day_bike_pca <- prcomp(day_bike[c(1,3,4,5,6,7,8,9,10,11,12,13,14,15,16)], center = TRUE, scale = TRUE)
+summary(day_bike_pca)
+```
+
+```{r PCA edit}
+day_bike_pca <- prcomp(day_bike[c(3,5,6,7,8,9,10,11,12,13,14,15,16)], center = TRUE, scale = TRUE)
+summary(day_bike_pca)
+```
+
+#### instant, date, and year was removed to lower the Standard Deviation
+
+### Plotted PCA
+
+```{r biplot 2}
+library("factoextra")
+
+fviz_pca_biplot(day_bike_pca,
+                geom="point",
+                repel = TRUE,
+                col.var = "deepskyblue",
+                col.ind = "gray40") 
+```
+
+#### temp is very close to CNT, month and season is very close.
+
+## Correlation Test
+
+```{r correlation Test, include = TRUE}
+#Correlation test
+
+winter <- day_bike[day_bike$season == "4",]
+spring <- day_bike[day_bike$season == "1",]
+fall <- day_bike[day_bike$season == "3",]
+summer <- day_bike[day_bike$season == "2",]
+
+t.test(summer$cnt,spring$cnt)
+t.test(summer$cnt,fall$cnt)
+t.test(summer$cnt,winter$cnt)
+
+```
+
+## Hypothesis tests
+
+```{r wilcoxon-Mann-Whitney test, include = TRUE}
+wilcox.test(summer$cnt,spring$cnt)
+wilcox.test(summer$cnt,fall$cnt)
+wilcox.test(summer$cnt,winter$cnt)
+#Wilcoxon-Mann-Whitney test
+```
+
+```{r corr, include=TRUE}
+cor.test(day_bike$temp,day_bike$cnt,
+         use = "pairwise.complete",method = "spearman")
+
+```
+
+```{r chi-squared, include = TRUE}
+#Chi-squared test
+chisq.test(day_bike$temp,day_bike$cnt)
+chisq.test(day_bike$cnt,day_bike$season)
+```
+
+```{r linear model}
+# Fit four models:
+mtcars$cyl <- factor(mtcars$cyl)
+m1 <- lm(cnt ~ temp, data = day_bike) # Simple model
+summary(m1)
+
+m2 <- lm(cnt ~ temp + mnth, data = day_bike)
+summary(m2)
+
+m3 <- lm(cnt ~ season*mnth + temp, data = day_bike) # Complex model
+summary(m3)
+
+m4 <- lmp(cnt ~ temp, data = day_bike)
+summary(m4)
+
+```
+
+#### Different factors were used to see which was had a better p-value and degrees of freedom over-all.
+
+## Data frame for fitted values
+
+```{r pred, include=FALSE}
+m1_pred <- data.frame(temp = day_bike$temp, cnt_pred = predict(m1))
+summary(m1_pred)
+m2_pred <- data.frame(temp = day_bike$temp, cnt_pred = predict(m2))
+summary(m2_pred)
+m3_pred <- data.frame(temp = day_bike$temp, cnt_pred = predict(m3))
+summary(m3_pred)
+m4_pred <- data.frame(temp = day_bike$temp, cnt_pred = predict(m4))
+summary(m4_pred)
+```
+
+## Fitted values plots
+
+```{r graph temp}
+# Plot fitted values:
+
+ggplot(day_bike, aes(temp, cnt)) +
+      geom_point() + 
+      geom_line(data = m1_pred, aes(x = day_bike$temp, y = cnt_pred),
+                colour = "red") + 
+      geom_line(data = m2_pred, aes(x = day_bike$temp, y = cnt_pred),
+                colour = "blue")
+  
+```
+
+```{r graph hum}
+# Plot fitted values:
+
+ggplot(day_bike, aes(season, cnt)) +
+      geom_point() + 
+      geom_line(data = m1_pred, aes(x = day_bike$season, y = cnt_pred),
+                colour = "red") + 
+      geom_line(data = m2_pred, aes(x = day_bike$season, y = cnt_pred),
+                colour = "blue")
+```
+
+```{r graph mnth}
+# Plot fitted values:
+
+ggplot(day_bike, aes(mnth, cnt)) +
+      geom_point() + 
+      geom_line(data = m1_pred, aes(x = day_bike$mnth, y = cnt_pred),
+                colour = "red") + 
+      geom_line(data = m2_pred, aes(x = day_bike$mnth, y = cnt_pred),
+                colour = "blue")
+```
+
+## Conclusion:
+
+#### With this information, you can see that temp has a great correlation as seen in the PCA and other plots. The other weather like snow and heavy rain does not have a correlation.  
